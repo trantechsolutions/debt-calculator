@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt Reduction Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        .debt-card {
+            transition: all 0.2s;
+        }
+        .debt-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #results {
+            transition: opacity 0.3s ease;
+        }
+        .extra-payment-input {
+            transition: all 0.3s ease;
+        }
+        .extra-payment-input:focus {
+            box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+            border-color: #ffc107;
+        }
+        /* Impact Modal Styling */
+        #paymentImpactModal .impact-summary {
+            font-size: 1.1rem;
+        }
+
+        #paymentImpactModal .modal-header {
+            padding: 1rem 1.5rem;
+        }
+
+        #paymentImpactModal .modal-body {
+            padding: 1.5rem;
+        }
+
+        #paymentImpactModal .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: none;
+        }
+
+        #paymentImpactModal .text-success {
+            color: #198754 !important;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h1 class="h4 mb-0">Debt Reduction Calculator</h1>
+                    </div>
+                    <div class="card-body">
+                        <form id="debt-form">
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label for="debt-name" class="form-label">Debt Name</label>
+                                    <input type="text" class="form-control" id="debt-name" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="debt-balance" class="form-label">Balance</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="debt-balance" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="debt-rate" class="form-label">Interest Rate</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="debt-rate" min="0" max="100" step="0.1" required>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="debt-payment" class="form-label">Min Payment</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="debt-payment" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">Add Debt</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div class="mb-4">
+                            <h2 class="h5 mb-3">Your Debts</h2>
+                            <ul id="debts-list" class="list-group"></ul>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="strategy" class="form-label">Payoff Strategy</label>
+                                <select id="strategy" class="form-select">
+                                    <option value="snowball">Snowball (Lowest Balance First)</option>
+                                    <option value="avalanche">Avalanche (Highest Interest First)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="start-date" class="form-label">Start Date</label>
+                                <input type="date" id="start-date" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="current-monthly" class="form-label">Current Monthly Payment</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="current-monthly" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="extra-snowball" class="form-label">Extra Monthly Payment</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="extra-snowball" class="form-control" min="0" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mb-4">
+                            <button id="calculate" class="btn btn-success">Calculate Payoff Plan</button>
+                            <div class="btn-group">
+                                <button id="clear-all" class="btn btn-outline-danger">Clear All</button>
+                                <button id="export-data" class="btn btn-outline-primary">Export Data</button>
+                                <label class="btn btn-outline-success">
+                                    Import Data <input type="file" id="import-data" accept=".json" hidden>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="results" class="d-none">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h2 class="h5 mb-0">Payoff Plan</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="plan-result"></div>
+                            <button id="show-full-schedule" class="btn btn-outline-primary w-100 mt-3 d-none">
+                                Show Full Payment Schedule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Payment Impact Modal -->
+    <div class="modal fade" id="paymentImpactModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">Payment Impact Summary</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <div class="impact-summary">
+                <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">Extra Payments Applied:</span>
+                <span id="impact-total-extra"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">New Payoff Duration:</span>
+                <span id="impact-new-months"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">Months Saved:</span>
+                <span id="impact-months-saved" class="text-success"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">Interest Saved:</span>
+                <span id="impact-interest-saved" class="text-success"></span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between fs-5">
+                <span class="fw-bold">Total Savings:</span>
+                <span id="impact-total-savings" class="text-success fw-bold"></span>
+                </div>
+            </div>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Continue</button>
+            </div>
+        </div>
+        </div>
+    </div>
+    <!-- Error Toast (add to your HTML) -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="errorToast" class="toast align-items-center text-white bg-danger" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toast-message"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
